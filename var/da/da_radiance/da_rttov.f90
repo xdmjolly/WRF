@@ -11,9 +11,12 @@ module da_rttov
    use module_radiance, only : satinfo, &
        i_kind,r_kind, r_double, &
        one, zero, three,deg2rad, q2ppmv, &
-       coefs, opts,opts_rt_ir, rttov_inst_name
+<<<<<<< HEAD
+       coefs, coef_scatt,opts,opts_scatt,opts_rt_ir, rttov_inst_name
    use module_radiance, only : rttov_options, rttov_opts_rt_ir, rttov_coefs, rttov_profile, &
        rttov_transmission, rttov_radiance, rttov_chanprof, &
+       rttov_options_scatt, profile_type, &
+       rttov_scatt_coef, profile_cloud_type, transmission_type, radiance_type, &
        jpim, jprb, errorstatus_success, errorstatus_fatal, gas_id_watervapour, &
        atlas, atlas_type, atlas_id, atlas_type_ir, atlas_type_mw, &
        sensor_id_ir, sensor_id_mw, sensor_id_hi, sensor_id_po, rttov_emissivity
@@ -27,7 +30,7 @@ module da_rttov
       time_window_max,time_window_min, kts,kte,kms,kme, &
       rtm_option_rttov,use_rttov_kmatrix,rtm_option_crtm, gravity, &
       print_detail_rad,stderr, mw_emis_sea, &
-      rtminit_print, rttov_scatt,comm,ierr,biasprep, qc_rad, &
+      rtminit_print, rttov_cloud, comm,ierr,biasprep, qc_rad, &
       num_fgat_time,stdout,trace_use, use_error_factor_rad, &
       qc_good, qc_bad,myproc,biascorr, global,ims,ime,jms,jme, &
       use_clddet_mmr, time_slots, rttov_emis_atlas_ir, rttov_emis_atlas_mw, &
@@ -66,6 +69,15 @@ module da_rttov
 #include "rttov_setup_emis_atlas.interface"
 #include "rttov_get_emis.interface"
 #include "rttov_deallocate_emis_atlas.interface"
+
+#include "rttov_read_scattcoeffs.interface"
+#include "rttov_dealloc_scattcoeffs.interface"
+#include "rttov_alloc_scatt_prof.interface"
+#include "rttov_scatt_setupindex.interface"
+#include "rttov_scatt.interface"
+#include "rttov_scatt_tl.interface"
+#include "rttov_scatt_ad.interface"
+
    
 contains
 
