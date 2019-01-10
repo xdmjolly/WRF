@@ -234,9 +234,6 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
          ! set up emissivity atlas
 
          atlas_path = 'emis_data'
-         ir_atlas_version = 100
-         mw_atlas_version = 100   ! TELSEM
-         if ( rttov_emis_atlas_mw == 2 ) mw_atlas_version = 200   ! CNRW
          write(unit=message(1),fmt='(A,A,A)')  &
             'Setting up emissivity atlas for instrument ', trim(iv%instid(inst)%rttovid_string),trim(atlas_path)
 

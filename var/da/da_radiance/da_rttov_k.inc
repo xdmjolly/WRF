@@ -25,8 +25,8 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
    ! RTTOV input parameters
    type (rttov_chanprof), allocatable :: chanprof(:)
 
-   type (profile_type),   allocatable :: profiles(:), profiles_k(:)
-   type (profile_cloud_type) , allocatable :: cld_profiles(:), cld_profiles_k(:) 
+   type (rttov_profile),   allocatable :: profiles(:), profiles_k(:)
+   type (rttov_profile_cloud) , allocatable :: cld_profiles(:), cld_profiles_k(:) 
    type (rttov_scatt_coef)   :: coef_scatt     ! scatting coefficients structure
    type (rttov_options_scatt)         :: opts_scatt 
 
@@ -235,7 +235,7 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
    !  calling RTTOV forward and K model
    !----------------------------------
    if (rttov_cloud) then
-   call rttov_read_scattcoeffs (errorstatus, coefs(inst)%coef, coef_scatt)
+   call rttov_read_scattcoeffs (errorstatus, opts_scatt(inst), coefs(inst)%coef, coef_scatt)
    ! Setup indices
    call rttov_scatt_setupindex ( &
       & nprofiles,           & ! in
@@ -248,6 +248,7 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
    asw = 1  ! allocate
    allocate (cld_profiles(nprofiles), stat=alloc_status(9))
    call rttov_alloc_scatt_prof(  &
+      & errorstatus,             &  
       & nprofiles,               &
       & cld_profiles,            &
       & nlevels,                 &

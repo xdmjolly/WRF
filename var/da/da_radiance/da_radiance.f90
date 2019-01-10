@@ -21,8 +21,7 @@ module da_radiance
 
    use module_radiance, only : coefs, rttov_coefs, rttov_profile, rttov_radiance, &
       rttov_transmission,errorstatus_success,gas_id_watervapour,rttov_emissivity, &
-      coef_scatt, rttov_scatt_coef, profile_type, profile_cloud_type,radiance_type, &
-      transmission_type
+      coef_scatt, rttov_scatt_coef,  rttov_profile_cloud, &
 #endif
 #ifdef CRTM
    use module_radiance, only : crtm_channelinfo_type, crtm_platform_name, crtm_init, &

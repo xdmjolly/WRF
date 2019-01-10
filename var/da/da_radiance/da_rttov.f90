@@ -11,12 +11,11 @@ module da_rttov
    use module_radiance, only : satinfo, &
        i_kind,r_kind, r_double, &
        one, zero, three,deg2rad, q2ppmv, &
-<<<<<<< HEAD
        coefs, coef_scatt,opts,opts_scatt,opts_rt_ir, rttov_inst_name
    use module_radiance, only : rttov_options, rttov_opts_rt_ir, rttov_coefs, rttov_profile, &
        rttov_transmission, rttov_radiance, rttov_chanprof, &
-       rttov_options_scatt, profile_type, &
-       rttov_scatt_coef, profile_cloud_type, transmission_type, radiance_type, &
+       rttov_options_scatt,  &
+       rttov_scatt_coef, rttov_profile_cloud, &
        jpim, jprb, errorstatus_success, errorstatus_fatal, gas_id_watervapour, &
        atlas, atlas_type, atlas_id, atlas_type_ir, atlas_type_mw, &
        sensor_id_ir, sensor_id_mw, sensor_id_hi, sensor_id_po, rttov_emissivity
