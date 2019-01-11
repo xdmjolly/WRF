@@ -21,11 +21,11 @@ module da_radiance
 
    use module_radiance, only : coefs, rttov_coefs, rttov_profile, rttov_radiance, &
       rttov_transmission,errorstatus_success,gas_id_watervapour,rttov_emissivity, &
-      coef_scatt, rttov_scatt_coef,  rttov_profile_cloud, &
+      coef_scatt, rttov_scatt_coef,  rttov_profile_cloud
 #endif
 #ifdef CRTM
-   use module_radiance, only : crtm_channelinfo_type, crtm_platform_name, crtm_init, &
-   CRTM_Planck_Radiance, CRTM_Planck_Temperature   
+   use module_radiance, only : crtm_channelinfo_type, crtm_platform_name, & 
+       crtm_init,CRTM_Planck_Radiance, CRTM_Planck_Temperature   
 #endif
 
 #ifdef DM_PARALLEL
