@@ -58,11 +58,13 @@ subroutine da_qc_gmi (it, i, nchan, ob, iv)
 
       !  1.0 reject all channels over land
       !-----------------------------------------------------------------
-    !  isflg = iv%instid(i)%isflg(n) !model surface type at ob location
-    !  if (isflg > 0 .or. iv%instid(i)%landsea_mask(n) == 0) then
-    !     iv%instid(i)%tb_qc(:,n)  = qc_bad
-    !     nrej_land = nrej_land + 1
-    !  end if
+      isflg = iv%instid(i)%isflg(n) !model surface type at ob location
+      if (only_sea_rad) then
+      if (isflg > 0 .or. iv%instid(i)%landsea_mask(n) == 0) then
+         iv%instid(i)%tb_qc(:,n)  = qc_bad
+         nrej_land = nrej_land + 1
+      end if
+      end if
 
         
 

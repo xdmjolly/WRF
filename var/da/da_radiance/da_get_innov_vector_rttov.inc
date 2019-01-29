@@ -380,6 +380,7 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
                temp, temp2, temp3, emissivity((n-n1)*nchan+1:(n-n1+1)*nchan))
             iv%instid(inst)%emiss(:,n) = emissivity((n-n1)*nchan+1:(n-n1+1)*nchan)%emis_out 
          end if
+		          print*,'check1'
          iv%instid(inst)%tb_xb(:,n)=temp(:)
          iv%instid(inst)%rad_xb(:,n)=temp2(:)
          ! Overcast Radiances for AIRS Cloud Detection(MMR)
@@ -388,7 +389,7 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
 
       end do
       !$OMP END PARALLEL DO
-
+    print*,'check2'
       if ( use_rttov_kmatrix ) then
          do n = n1, n2
             do k = 1, nlevels

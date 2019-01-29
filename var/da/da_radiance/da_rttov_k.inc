@@ -81,7 +81,6 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
       & nlevels,                 &
       & opts(inst),              &
       & asw,                     &
-      & coefs = coefs(inst),     &  ! mandatory if either opts%addclouds or opts%addaerosl is true
       & init = .true.            )  ! additionally initialize profiles structure
    if ( errorstatus /= errorstatus_success .or. alloc_status(2) /= 0 ) then
      call da_error(__FILE__,__LINE__, &
@@ -164,6 +163,7 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
 
    allocate (emissivity_k(nchanprof), stat=alloc_status(3))
    allocate (calcemis(nchanprof), stat=alloc_status(5))
+   allocate (frequencies  (nchanprof))
    if ( any( alloc_status /= 0 ) ) then
       call da_error(__FILE__,__LINE__, &
          (/"memory allocation error for emissivity arrays"/))
@@ -244,7 +244,6 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
       & nchanprof,       & ! in
       & chanprof,        & ! out
       & frequencies)       ! out
-
    asw = 1  ! allocate
    allocate (cld_profiles(nprofiles), stat=alloc_status(9))
    call rttov_alloc_scatt_prof(  &
@@ -407,7 +406,7 @@ subroutine da_rttov_k(inst, nchanl, nprofiles, nlevels, &
    deallocate (calcemis)
    deallocate (chanprof)
    deallocate (emissivity_k)
-
+   deallocate (frequencies)
    asw = 0 ! deallocation
    ! deallocate radiance arrays
    call rttov_alloc_rad (errorstatus,nchanprof,radiance,nlevels,asw)
