@@ -106,7 +106,23 @@ subroutine da_initialize_rad_iv (i, n, iv, p)
    iv%instid(i)%satazi(n)       = p%satazi
    iv%instid(i)%solzen(n)       = p%solzen
    iv%instid(i)%solazi(n)       = p%solazi
+   iv%instid(i)%tropt(n)        = 0.0
  !  iv%instid(i)%solazi(n)       = 0.0
+   if ( use_clddet_zz ) then
+   if ( associated ( p % cld_qc ) ) then
+      iv%instid(i)%cld_qc(n)%RTCT = p % cld_qc % RTCT
+      iv%instid(i)%cld_qc(n)%RFMFT = p % cld_qc % RFMFT
+      iv%instid(i)%cld_qc(n)%TEMPIR = p % cld_qc % TEMPIR
+      if ( allocated ( p % cld_qc % tb_stddev_3x3 ) ) &
+         iv%instid(i)%cld_qc(n)%tb_stddev_3x3(:) = p % cld_qc % tb_stddev_3x3(:)
+      iv%instid(i)%cld_qc(n)%terr_hgt = p % cld_qc % terr_hgt
+      if ( allocated ( p % cld_qc % CIRH2O ) .and. &
+         size(p % cld_qc % CIRH2O).eq.1) then
+         allocate ( iv%instid(i)%cld_qc(n)%CIRH2O(1,1,1) )
+         iv%instid(i)%cld_qc(n)%CIRH2O = p % cld_qc % CIRH2O
+      end if
+   end if
+   end if
 
    if ( rtm_option == rtm_option_rttov ) then
       iv%instid(i)%surftype(n)     = 0

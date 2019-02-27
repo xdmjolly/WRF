@@ -22,6 +22,8 @@
          deallocate (satinfo(i) % iuse)
          deallocate (satinfo(i) % error)
          deallocate (satinfo(i) % error_cld)
+         deallocate (satinfo(i) % camin)
+         deallocate (satinfo(i) % camax)
          deallocate (satinfo(i) % polar)
 
          deallocate (satinfo(i) % scanbias) 
@@ -104,6 +106,7 @@
 
             if ( index(iv%instid(i)%rttovid_string, 'ahi') > 0 ) then
                deallocate (iv%instid(i)%cloudflag)
+               deallocate (iv%instid(i)%ca_mean)
             end if			
 
             if ( index(iv%instid(i)%rttovid_string,'gmi') > 0 ) then
@@ -134,8 +137,18 @@
             deallocate (iv%instid(i)%satazi)
             deallocate (iv%instid(i)%solzen)
             deallocate (iv%instid(i)%solazi)
+            deallocate (iv%instid(i)%tropt)
             deallocate (iv%instid(i)%gamma_jacobian)
-
+            if ( use_clddet_zz ) then
+               do n = 1,iv%instid(i)%num_rad
+                  if ( allocated (iv%instid(i)%cld_qc(n)%tb_stddev_3x3) ) &
+                     deallocate (iv%instid(i)%cld_qc(n)%tb_stddev_3x3)
+                  if ( allocated (iv%instid(i)%cld_qc(n)%CIRH2O) ) &
+                     deallocate (iv%instid(i)%cld_qc(n)%CIRH2O)
+               end do
+               deallocate (iv%instid(i)%cld_qc)
+              !! deallocate (iv%instid(i)%gamma_jacobian)
+           end if
            if (ANY(use_satcv)) then
 	      if (use_satcv(2)) then
                  do n = 1,iv%instid(i)%num_rad

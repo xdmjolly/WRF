@@ -170,6 +170,8 @@ module module_radiance
       real   , pointer   :: bcoef(:,:)   ! airmass predictor bias coefficients
       real   , pointer   :: bcoef0(:)    ! airmass constant coefficient
       real   , pointer   :: error_std(:) ! error standard deviation
+      real   , pointer   :: camin(:)
+      real   , pointer   :: camax(:)
    end type satinfo_type
 
    type (satinfo_type), pointer :: satinfo(:)

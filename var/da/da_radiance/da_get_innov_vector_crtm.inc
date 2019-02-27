@@ -93,6 +93,11 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
    real              :: rad_clr, rad_ovc_ilev, rad_ovc_jlev
    
    integer           :: Band_Size(5), Bands(AIRS_Max_Channels,5) 
+   !For Zhuge and Zou cloud detection
+   real, allocatable :: geoht_full(:,:,:)
+   real              :: geoht_pixel(kts:min(kte,kme-1))
+   real              :: tt_pixel(kts:min(kte,kme-1))
+   real              :: pp_pixel(kts:min(kte,kme-1))
   
       Band_Size(1:5) = (/86, 0, 0, 16, 0 /)
       Bands(:,:)     = 0  
@@ -196,6 +201,17 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
          wrf_to_crtm_mw = igbp_to_crtm_mw
    end if
 
+   if ( use_clddet_zz ) then
+      allocate ( geoht_full(ims:ime,jms:jme,kms:kme-1) )
+      do k = kms, kme-1
+         do j = jms, jme
+            do i = ims, ime
+               geoht_full(i,j,k) = 0.5 * ( grid%ph_2(i,j,k)   + grid%phb(i,j,k) + &
+                                           grid%ph_2(i,j,k+1) + grid%phb(i,j,k+1) ) / gravity
+            end do
+         end do
+      end do
+   end if
    !------------------------------------------------------
    ! [1.0] calculate the background bright temperature
    !-------------------------------------------------------
@@ -239,6 +255,12 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
          calc_tb_clr = .true.
       end if
 
+      if ( crtm_cloud .and. &
+           trim( crtm_sensor_name(rtminit_sensor(inst))) == 'ahi' ) then
+         !Tb_clear_sky is only needed for symmetric obs error model
+         !symmetric obs error model only implemented for gmi for now
+         calc_tb_clr = .true.
+      end if
 
       if ( calc_tb_clr ) then
          allocate (RTSolution_clr(ChannelInfo(inst)%n_Channels,1), STAT = Allocate_Status )
@@ -424,6 +446,17 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
             end if
          end do
 
+         if (use_clddet_zz) then
+            ! Find tropopause temperature for Zhuge and Zou Cloud Detection
+            do k = kts, min(kte,kme-1)
+               tt_pixel(k) = Atmosphere(1)%Temperature(kte-k+1)
+               pp_pixel(k) = Atmosphere(1)%Pressure(kte-k+1)
+               call da_interp_2d_partial ( geoht_full(:,:,k), iv%instid(inst)%info, k, n, n, geoht_pixel(k) )
+            end do
+            call da_trop_wmo ( tt_pixel, geoht_pixel, pp_pixel, (min(kte,kme-1)-kts+1), tropt = iv%instid(inst)%tropt(n) )
+         end if
+
+
          call da_interp_2d_partial (grid%xb%u10,  iv%instid(inst)%info, 1, n, n, model_u10(n:n))
          call da_interp_2d_partial (grid%xb%v10,  iv%instid(inst)%info, 1, n, n, model_v10(n:n))
          call da_interp_2d_partial (grid%xb%psfc, iv%instid(inst)%info, 1, n, n, model_psfc(n:n))
@@ -521,7 +554,7 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
          end if
 
          if (Surface(1)%Land_Coverage > 0.0) then
-            Surface(1)%Land_Type       = nint(model_ivgtyp)
+            Surface(1)%Land_Type       = min(15,nint(model_ivgtyp))
             Surface(1)%Vegetation_Type = max(1,wrf_to_crtm_mw(nint(model_ivgtyp)))
             Surface(1)%Soil_Type       = max(1,wrf_to_crtm_soil(nint(model_isltyp)))
             ! glacial land ice soil type and glacial vegetation type are not valid land types
@@ -544,7 +577,7 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
             ! surface(1)%Wind_Direction=0.0            ! NOT used
             Surface(1)%Salinity=33.0                   ! ppmv
          end if
-
+!print *,'dongmeiland',Surface(1)%Land_Type
          if (Surface(1)%Snow_Coverage > 0.0) then
             Surface(1)%Snow_Type=2 !NEW_SNOW
             Surface(1)%Snow_Temperature=model_ts(n)      ! K
@@ -927,7 +960,7 @@ subroutine da_get_innov_vector_crtm ( it, grid, ob, iv )
    end do        ! end loop for sensor
 
    deallocate (wrf_to_crtm_mw)
-
+   if ( use_clddet_zz ) deallocate ( geoht_full )
    call CRTM_Atmosphere_Destroy (Atmosphere)
    IF ( CRTM_Atmosphere_Associated( Atmosphere(1) ) ) &
        call da_error(__FILE__,__LINE__, &

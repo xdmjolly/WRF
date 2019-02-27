@@ -34,7 +34,7 @@ subroutine da_radiance_init(iv,ob)
  integer             :: iunit
  character(len=filename_len)  :: filename
  character(len=20)   :: cdum
- real                :: error_cld
+ real                :: error_cld,camax,camin
 
 ! local variables for tuning error factor
 !----------------------------------------
@@ -188,10 +188,13 @@ subroutine da_radiance_init(iv,ob)
    allocate ( satinfo(n) % iuse (nchanl(n)) )
    allocate ( satinfo(n) % error(nchanl(n)) )
    allocate ( satinfo(n) % error_cld(nchanl(n)) )
+   allocate ( satinfo(n) % camax(nchanl(n)) )
+   allocate ( satinfo(n) % camin(nchanl(n)) )
    allocate ( satinfo(n) % polar(nchanl(n)) )
 
    satinfo(n) % error_cld(:) = 500.0 !initialize
-
+   satinfo(n) % camin(:) = 0.05 !initialize
+   satinfo(n) % camax(:) = 0.5 !initialize
    read(iunit,*)
    do j = 1, nchanl(n)
       read(iunit,'(1x,5i5,2e18.10,a20)') &
@@ -208,7 +211,7 @@ subroutine da_radiance_init(iv,ob)
       if ( len_trim(cdum) > 0 .and. index(cdum,'-') == 0 ) then
          ! read the line again to get error_cld when it is available
          backspace(iunit)
-         read(iunit,'(1x,5i5,2e18.10,f10.5)')  &
+         read(iunit,'(1x,5i5,2e18.10,3f10.5)')  &
                      wmo_sensor_id, &
                satinfo(n)%ichan(j), &
                        sensor_type, &
@@ -216,9 +219,17 @@ subroutine da_radiance_init(iv,ob)
                               idum, &
                satinfo(n)%error(j), &
                satinfo(n)%polar(j), &
-               error_cld
+               error_cld,           &
+               camin,               &
+               camax
          if ( error_cld > 0.0 ) then
             satinfo(n)%error_cld(j) = error_cld
+         end if
+         if ( camin > 0.0 ) then
+            satinfo(n)%camin(j) = camin
+         end if
+         if ( camax > 0.0 ) then
+            satinfo(n)%camax(j) = camax
          end if
       end if
      iv%instid(n)%ichan(j) = satinfo(n)%ichan(j)

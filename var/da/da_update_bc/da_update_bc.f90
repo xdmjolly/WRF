@@ -497,6 +497,7 @@ program da_update_bc
          end do
       end if
       if ( iostatus(2) == 0 ) then
+print *,'dmlow'
          call da_put_var_2d_real_cdf( da_file, 'SNOW',   snow, &
                                 dims(1), dims(2), 1, debug)
       end if

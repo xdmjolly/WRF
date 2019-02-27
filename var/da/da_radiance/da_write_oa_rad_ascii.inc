@@ -19,7 +19,7 @@ subroutine da_write_oa_rad_ascii (it, ob, iv, re )
    character(len=filename_len)  :: filename
    character(len=7)   :: surftype
    integer            :: ndomain
-   logical            :: amsr2, gmi
+   logical            :: amsr2, gmi,ahi
 
    if (trace_use) call da_trace_entry("da_write_oa_rad_ascii")
 
@@ -41,6 +41,7 @@ subroutine da_write_oa_rad_ascii (it, ob, iv, re )
 
       amsr2 = index(iv%instid(i)%rttovid_string,'amsr2') > 0
       gmi   = index(iv%instid(i)%rttovid_string,'gmi')   > 0
+      ahi   = index(iv%instid(i)%rttovid_string,'ahi') > 0
 
       write(unit=filename, fmt='(i2.2,a,i4.4)') it,'_oma_'//trim(iv%instid(i)%rttovid_string)//'.', myproc
 
@@ -137,7 +138,12 @@ subroutine da_write_oa_rad_ascii (it, ob, iv, re )
             write(unit=oma_rad_unit,fmt='(10f11.2)') iv%instid(i)%tb_error(:,n)
             write(unit=oma_rad_unit,fmt='(a)') 'QC   : '
             write(unit=oma_rad_unit,fmt='(10i11)') iv%instid(i)%tb_qc(:,n)
-
+            if ( ahi .and. crtm_cloud ) then ! write out ca_mean, tb_xb_clr
+               write(unit=oma_rad_unit,fmt='(a)') 'CA   : '
+               write(unit=oma_rad_unit,fmt='(10f11.2)') iv%instid(i)%ca_mean(:,n)
+               write(unit=oma_rad_unit,fmt='(a)') 'BGCLR: '
+               write(unit=oma_rad_unit,fmt='(10f11.2)') iv%instid(i)%tb_xb_clr(:,n)
+            end if
             if (write_profile) then
                nlevelss  = iv%instid(i)%nlevels
                if ( rtm_option == rtm_option_rttov ) then

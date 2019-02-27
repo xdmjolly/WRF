@@ -42,7 +42,7 @@ program da_rad_diags
    integer                                :: ncid, dimid, varid
    integer, dimension(3)                  :: ishape, istart, icount
 !
-   logical                                :: amsr2, gmi
+   logical                                :: amsr2, gmi,ahi
    logical                                :: isfile, prf_found, jac_found
    integer, parameter                     :: datelen1 = 10
    integer, parameter                     :: datelen2 = 19
@@ -62,6 +62,7 @@ program da_rad_diags
    real*4,  dimension(:), allocatable     :: smois, tslb, snowh, vegfra, clwp
    integer, dimension(:,:), allocatable   :: tb_qc
    real*4,  dimension(:,:), allocatable   :: tb_obs, tb_bak, tb_inv, tb_oma, tb_err, ems, ems_jac
+   real*4,  dimension(:,:), allocatable   :: ca_mean, tb_bak_clr
    real*4,  dimension(:,:), allocatable   :: prf_pfull, prf_phalf, prf_t, prf_q, prf_water
    real*4,  dimension(:,:), allocatable   :: prf_ice, prf_rain, prf_snow, prf_grau, prf_hail
    real*4,  dimension(:,:), allocatable   :: prf_water_reff, prf_ice_reff, prf_rain_reff
@@ -136,7 +137,8 @@ ntime_loop: do itime = 1, ntime
 
       amsr2 = index(instid(iinst),'amsr2') > 0
       gmi   = index(instid(iinst),'gmi') > 0 
-
+      ahi   = index(instid(iinst),'ahi') > 0
+	  
       nerr = 0
       total_npixel = 0
       ips = 0
@@ -254,6 +256,10 @@ ntime_loop: do itime = 1, ntime
             allocate ( tb_err(1:nchan,1:total_npixel) )
             allocate (  tb_qc(1:nchan,1:total_npixel) )
             allocate (    ems(1:nchan,1:total_npixel) )
+            if ( ahi ) then
+               allocate ( ca_mean(1:nchan,1:total_npixel) )
+               allocate ( tb_bak_clr(1:nchan,1:total_npixel) )
+            end if
             if ( jac_found ) then
                allocate ( ems_jac(1:nchan,1:total_npixel) )
             end if
@@ -321,6 +327,10 @@ ntime_loop: do itime = 1, ntime
             tb_inv = missing_r
             tb_oma = missing_r
             tb_err = missing_r
+            if ( ahi ) then
+               ca_mean = missing_r
+               tb_bak_clr = missing_r
+            end if
             ncname = 'diags_'//trim(instid(iinst))//"_"//datestr1(itime)//'.nc'
             ios = NF_CREATE(trim(ncname), NF_CLOBBER, ncid)  ! NF_CLOBBER specifies the default behavior of
                                                              ! overwritting any existing dataset with the 
@@ -371,6 +381,12 @@ ntime_loop: do itime = 1, ntime
             read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf           ! QC
             read(unit=iunit(iproc),fmt='(10i11)',iostat=ios  ) tb_qc(:,ipixel)
             read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf
+            if ( ahi .and. buf(1:2) == "CA" ) then ! read ca_mean, tb_bak_clr for ahi
+               read(unit=iunit(iproc),fmt='(10f11.2)',iostat=ios) ca_mean(:,ipixel)
+               read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf        ! BGCLR
+               read(unit=iunit(iproc),fmt='(10f11.2)',iostat=ios) tb_bak_clr(:,ipixel)
+               read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf        ! INFO or level
+            end if			
             if ( buf(1:4) == "INFO" ) then
                backspace(iunit(iproc))
                cycle npixel_loop
@@ -497,6 +513,12 @@ ntime_loop: do itime = 1, ntime
       end if
       ios = NF_DEF_VAR(ncid, 'tb_err', NF_FLOAT, 2, ishape(1:2), varid)
       ios = NF_DEF_VAR(ncid, 'tb_qc',  NF_INT,   2, ishape(1:2), varid)
+      if ( ahi ) then
+         ios = NF_DEF_VAR(ncid, 'ca_mean', NF_FLOAT, 2, ishape(1:2), varid)
+         ios = NF_PUT_ATT_REAL(ncid, varid, 'missing_value', NF_FLOAT, 1, missing_r)
+         ios = NF_DEF_VAR(ncid, 'tb_bak_clr', NF_FLOAT, 2, ishape(1:2), varid)
+         ios = NF_PUT_ATT_REAL(ncid, varid, 'missing_value', NF_FLOAT, 1, missing_r)
+      end if	  
       !
       ! define 2-D array with dimensions nlev * total_npixel
       !
@@ -634,6 +656,12 @@ ntime_loop: do itime = 1, ntime
       ios = NF_PUT_VARA_REAL(ncid, varid, istart(1:2), icount(1:2), tb_err)
       ios = NF_INQ_VARID (ncid, 'tb_qc', varid)
       ios = NF_PUT_VARA_INT(ncid,  varid, istart(1:2), icount(1:2), tb_qc)
+      if ( ahi ) then
+         ios = NF_INQ_VARID (ncid, 'ca_mean', varid)
+         ios = NF_PUT_VARA_REAL(ncid, varid, istart(1:2), icount(1:2), ca_mean)
+         ios = NF_INQ_VARID (ncid, 'tb_bak_clr', varid)
+         ios = NF_PUT_VARA_REAL(ncid, varid, istart(1:2), icount(1:2), tb_bak_clr)
+      end if	  
       !
       ! output 2-D array with dimensions nlev * total_npixel
       !
@@ -838,6 +866,10 @@ ntime_loop: do itime = 1, ntime
       deallocate ( tb_obs )
       deallocate ( tb_bak )
       deallocate ( tb_inv )
+      if ( ahi ) then
+         deallocate ( ca_mean )
+         deallocate ( tb_bak_clr )
+      end if	  
       deallocate ( tb_oma )
       deallocate ( ems )
       if ( jac_found ) deallocate ( ems_jac )

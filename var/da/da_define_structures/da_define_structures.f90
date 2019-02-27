@@ -480,6 +480,11 @@ module da_define_structures
       real,    pointer     :: bgerr(:) 
       real,    pointer     :: vtox(:,:)
    end type varbc_type
+   type cld_qc_type
+     real  :: RTCT, RFMFT, RFMFT_ij(2), TEMPIR, terr_hgt
+     real, allocatable :: tb_stddev_3x3(:)
+     real, allocatable :: CIRH2O(:,:,:)
+   end type cld_qc_type
    
    type cv_index_type
       integer              :: ts
@@ -516,10 +521,12 @@ module da_define_structures
       integer, pointer     :: cloud_flag(:,:)
       integer, pointer     :: cloudflag(:)
       integer, pointer     :: rain_flag(:)
+      real,    pointer     :: ca_mean(:,:)
       real,    pointer     :: satzen(:) 
       real,    pointer     :: satazi(:) 
       real,    pointer     :: solzen(:) 
       real,    pointer     :: solazi(:) 
+      real,    pointer     :: tropt(:)
       real,    pointer     :: t(:,:)
       real,    pointer     :: q(:,:)
       real,    pointer     :: mr(:,:)
@@ -595,7 +602,7 @@ module da_define_structures
       real,    pointer     :: ice_coverage(:)
       real,    pointer     :: snow_coverage(:)
       integer, pointer     :: crtm_climat(:) ! CRTM only
-
+      type (cld_qc_type), pointer :: cld_qc(:)
       type (varbc_info_type)        :: varbc_info
       type (varbc_type),pointer     :: varbc(:)
       type (cv_index_type), pointer :: cv_index(:)
