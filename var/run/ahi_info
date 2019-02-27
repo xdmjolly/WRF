@@ -1,5 +1,5 @@
 data source:1.cma hdf5;2.geocat netcdf4;3.jaxa netcdf4;4.ncep bufr
-2
+3
 nscan
 3000
 area information for geocat netcdf4 data: lonstart latstart nlongitude nlatitude 
