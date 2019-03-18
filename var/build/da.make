@@ -68,6 +68,7 @@ WRFVAR_OBJS = \
    gsi_kinds.o \
    gsi_constants.o \
    gsi_thinning.o \
+   mod_qc.o \
    da_wrfvar_io.o \
    da_airsr.o \
    da_wrfvar_top.o \
@@ -417,6 +418,7 @@ da_obs_io.o \
 da_obs.o \
 da_crtm.o \
 da_rttov.o \
+mod_qc.o \
 da_varbc.o :
 	$(RM) $@
 	$(SED_FTN) $*.f90 > $*.b

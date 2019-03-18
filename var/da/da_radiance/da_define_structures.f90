@@ -481,7 +481,7 @@ module da_define_structures
       real,    pointer     :: vtox(:,:)
    end type varbc_type
    type cld_qc_type
-     real  :: RTCT, RFMFT, TEMPIR, terr_hgt
+     real  :: RTCT, RFMFT, RFMFT_ij(2), TEMPIR, terr_hgt
      real  :: tb_stddev_10, tb_stddev_13,tb_stddev_14
      real  :: CIRH2O
      !real, allocatable :: CIRH2O(:,:,:)

@@ -140,14 +140,7 @@
             deallocate (iv%instid(i)%tropt)
             deallocate (iv%instid(i)%gamma_jacobian)
             if ( use_clddet_zz ) then
-               do n = 1,iv%instid(i)%num_rad
-                  if ( allocated (iv%instid(i)%cld_qc(n)%tb_stddev_3x3) ) &
-                     deallocate (iv%instid(i)%cld_qc(n)%tb_stddev_3x3)
-                  if ( allocated (iv%instid(i)%cld_qc(n)%CIRH2O) ) &
-                     deallocate (iv%instid(i)%cld_qc(n)%CIRH2O)
-               end do
                deallocate (iv%instid(i)%cld_qc)
-              !! deallocate (iv%instid(i)%gamma_jacobian)
            end if
            if (ANY(use_satcv)) then
 	      if (use_satcv(2)) then

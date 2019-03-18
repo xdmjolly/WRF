@@ -117,9 +117,6 @@ subroutine da_allocate_rad_iv (i, nchan, iv)
 
       if ( use_clddet_zz ) then
          allocate (iv%instid(i)%cld_qc(iv%instid(i)%num_rad))
-         do n = 1, iv%instid(i)%num_rad
-            allocate (iv%instid(i)%cld_qc(n)%tb_stddev_3x3(nchan))
-         end do
       end if
       if ( use_rttov_kmatrix .or. use_crtm_kmatrix ) then
          allocate(iv%instid(i)%ts_jacobian(nchan,iv%instid(i)%num_rad))

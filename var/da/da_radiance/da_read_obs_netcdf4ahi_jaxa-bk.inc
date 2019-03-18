@@ -54,7 +54,6 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
    logical           :: outside, outside_all, iuse
 
    integer           :: i,j,k,l,m,n, ifile, landsea_mask
-
    logical           :: found, head_found, head_allocated
 
 ! Other work variables
@@ -80,7 +79,7 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
    real(4), allocatable    :: tbbp(:,:,:)  ! tb for band 7-16   
    real(r_kind), allocatable       :: tbb_temp1(:,:), tbb_temp2(:,:)
    real(r_kind), allocatable       :: rtct(:,:), rtct2(:,:),rtmt(:,:)
-   real(r_kind), allocatable       :: tempir(:,:),cwvt1(:,:)
+   real(r_kind), allocatable       :: tempir(:,:),cwvt1(:,:),cwvt2(:,:)
    real(r_kind), allocatable    :: ter_sat(:,:),SDob_10(:,:),SDob_13(:,:),SDob_14(:,:)
    character(200)    :: filenameStatic
    type(cld_qc_type) ::cld_qc  
@@ -235,7 +234,6 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
 		do j=1,nlatitude
 		  do i=1,nlongitude
 			  tbb(i,j,k)=tbb(i,j,k) * scale_factor_tb + add_offset_tb
-              if( tbb(i,j,k) < tbmin .or. tbb(i,j,k) > tbmax ) tbb(i,j,k) = missing_r			  
 		  end do
 		end do	
 	   ! sample display
@@ -327,7 +325,8 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
       allocate( rtct2(nlongitude,nlatitude))
       allocate( rtmt(nlongitude,nlatitude))
       allocate( tempir(nlongitude,nlatitude))
-      allocate( cwvt1(nlongitude,nlatitude))	  
+      allocate( cwvt1(nlongitude,nlatitude))
+      allocate( cwvt2(nlongitude,nlatitude))	  
       allocate( tbb_temp1(nlongitude,nlatitude))
       allocate( tbb_temp2(nlongitude,nlatitude)) 	
    
@@ -356,7 +355,6 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
 		do j=1,nlatitude
 		  do i=1,nlongitude
 			  tbbp(i,j,k)=tbbp(i,j,k) * scale_factor_tb + add_offset_tb
-              if( tbbp(i,j,k) < tbmin .or. tbbp(i,j,k) > tbmax ) tbbp(i,j,k) = missing_r			  
 		  end do
 		end do	
 	   ! sample display
@@ -383,62 +381,54 @@ subroutine da_read_obs_netcdf4ahi_jaxa (iv, infile_tb, infile_tbp)
       where (ter_sat == -999.) ter_sat = missing_r
       iret = nf90_close(ncid)
       print *, 'ter_sat',maxval(ter_sat),	minval(ter_sat)		
+
+end if 
 	  
 !!2- ZZ test0-SDob		
 	  
 	  tbb_temp1 = missing_r
       tbb_temp1 = tbb(:,:,ch13)   ! 10.4um	  
 	  SDob_13=missing_r
-      call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_13)
+   !   call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_13)
 print *, 'SDob_13',maxval(SDob_13),	minval(SDob_13)
 
 	  !!!!!!!!!! for ZZ test6
-	  tbb_temp1 = missing_r		  	  
       tbb_temp1 = tbb(:,:,ch10)   ! 7.3um
 	  SDob_10=missing_r	  
-      call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_10)
+  !    call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_10)
 print *, 'SDob_10',maxval(SDob_10),	minval(SDob_10)	 
-	  tbb_temp1 = missing_r		   
+ 
       tbb_temp1 = tbb(:,:,ch14)   ! 11.2umum	
 	  SDob_14=missing_r	  
-      call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_14)	  
+  !    call qc_SDob(nlongitude,nlatitude,tbb_temp1,SDob_14)	  
 print *, 'SDob_14',maxval(SDob_14),	minval(SDob_14)
-
-!! ZZ test1- RTCT	
-	  tbb_temp1 = missing_r		    
+						  
+!! ZZ test1- RTCT	  
       tbb_temp1 = tbb(:,:,ch14)   ! 11.2um
-      rtct=0.1	
-      call qc_RTCT(nlongitude,nlatitude,tbb_temp1,ter_sat,rtct,rtct2)
-   
+	  rtct=missing_r	
+   !   call qc_RTCT(nlongitude,nlatitude,tbb_temp1,ter_sat,rtct,rtct2)
+print *, 'rtct',maxval(rtct),	minval(rtct)
+
 !! ZZ test5-RFMFT
 
-	  tbb_temp1 = missing_r	
- 	  tbb_temp2 = missing_r		  	  
+	  tbb_temp2 = missing_r	  
       tbb_temp1 = tbb(:,:,ch14);  tbb_temp2 = tbb(:,:,ch15)   ! 11.2um and 12.4um
 	  rtmt=missing_r		  
-      call qc_rtmt(nlongitude,nlatitude,tbb_temp1,tbb_temp2,rtmt)
+  !    call qc_rtmt(nlongitude,nlatitude,tbb_temp1,tbb_temp2,rtmt)
 print *, 'rtmt',maxval(rtmt),	minval(rtmt)
-
+ 
 !! ZZ test6-CIRH2O
-	  tbb_temp1 = missing_r	
- 	  tbb_temp2 = missing_r		
-	  tbb_temp1 = tbb(:,:,ch10)
-	  tbb_temp2 = tbb(:,:,ch14)   ! 7.3um and 11.2um
+      tbb_temp1 = tbb(:,:,ch10);  tbb_temp2 = tbb(:,:,ch14)   ! 7.3um and 11.2um
 	  cwvt1=missing_r		  
-      call qc_cwvt(nlongitude,nlatitude,tbb_temp1,tbb_temp2,cwvt1)
+   !   call qc_cwvt(nlongitude,nlatitude,tbb_temp1,tbb_temp2,cwvt1,cwvt2)
 print *, 'cwvt1',maxval(cwvt1),	minval(cwvt1)
-
 	  
-!! ZZ test10- TEMPIR
-	  tbb_temp1 = missing_r	
- 	  tbb_temp2 = missing_r		  
+!! ZZ test10- TEMPIR	 	  
       tbb_temp1 = tbbp(:,:,ch14);  tbb_temp2 = tbb(:,:,ch14)   ! 11.2um 		  
       where(tbb_temp1 /=missing_r .and. tbb_temp2 /= missing_r) tempir = tbb_temp1-tbb_temp2	  
       where(tbb_temp1 ==missing_r .or.  tbb_temp2 == missing_r) tempir = missing_r	
-print *, 'tempir',maxval(tempir),	minval(tempir),nlongitude,nlatitude	  	  
-end if 
-	  
-
+print *, 'tempir',maxval(tempir),	minval(tempir),nlongitude,nlatitude	  
+  end if  !use_clddet_zz
   
   
 ! 2.0 Loop to read netcdf and assign information to a sequential structure
@@ -451,8 +441,8 @@ end if
          head_allocated = .true.
       end if
    ! start scan_loop
-
       scan_loop:     do ilatitude=1, nlatitude
+	  
          call da_get_julian_time(idate5(1),idate5(2),idate5(3),idate5(4),idate5(5),obs_time)
          if ( obs_time < time_slots(0) .or.  &
             obs_time >= time_slots(num_fgat_time) ) cycle scan_loop
@@ -461,7 +451,7 @@ end if
                obs_time  < time_slots(ifgat) ) exit
          end do
       ! start fov_loop
-         fov_loop:      do ilongitude=1, nlongitude		 
+         fov_loop:      do ilongitude=1, nlongitude			
 			if ( sat_zenith(ilongitude,ilatitude) > 65.0 ) cycle fov_loop
 			
             num_ahi_file       = num_ahi_file + 1
@@ -469,21 +459,23 @@ end if
             info%lat  =  vlatitude(ilatitude)
             info%lon  =  vlongitude(ilongitude)
             if (use_clddet_zz) then				
-                cld_qc%TEMPIR        = tempir(ilongitude,ilatitude)
-                cld_qc%RTCT        = rtct(ilongitude,ilatitude)
-                cld_qc%RFMFT        = rtmt(ilongitude,ilatitude)
-                cld_qc%CIRH2O        = cwvt1(ilongitude,ilatitude)
-                cld_qc%tb_stddev_10 = SDob_10(ilongitude,ilatitude)
-                cld_qc%tb_stddev_13 =  SDob_13(ilongitude,ilatitude)
-                cld_qc%tb_stddev_14 = SDob_14(ilongitude,ilatitude)
-                cld_qc % terr_hgt=ter_sat(ilongitude,ilatitude)
-	    end if
+            cld_qc%TEMPIR        = tempir(ilongitude,ilatitude)
+            cld_qc%RTCT        = rtct(ilongitude,ilatitude)
+            cld_qc%RFMFT        = rtmt(ilongitude,ilatitude)
+            cld_qc%CIRH2O        = cwvt1(ilongitude,ilatitude)
+            cld_qc%tb_stddev_10 = SDob_10(ilongitude,ilatitude)
+            cld_qc%tb_stddev_13 =  SDob_13(ilongitude,ilatitude)
+            cld_qc%tb_stddev_14 = SDob_14(ilongitude,ilatitude)
+            cld_qc % terr_hgt=ter_sat(ilongitude,ilatitude)
+			end if
             call da_llxy (info, loc, outside, outside_all)
             if (outside_all) cycle fov_loop
+
             num_ahi_global       = num_ahi_global + 1
             num_ahi_global_local = num_ahi_global_local + 1
             ptotal(ifgat) = ptotal(ifgat) + 1
             if (outside) cycle fov_loop   ! No good for this PE
+
             num_ahi_local       = num_ahi_local + 1
             num_ahi_local_local = num_ahi_local_local + 1
             write(unit=info%date_char, &
@@ -509,6 +501,7 @@ end if
                   cycle fov_loop
                end if
             end if
+
             num_ahi_used = num_ahi_used + 1
             data_all = missing_r		
 
@@ -533,6 +526,7 @@ end if
             p%sensor_index     = inst
             p%ifgat            = ifgat
 	        p%cld_qc        = cld_qc
+			print *, 'zzc1',p%cld_qc%TEMPIR 
             allocate (p%next)   ! add next data			
             p => p%next			
             nullify (p%next)
@@ -551,6 +545,7 @@ end if
    deallocate(sol_zenith)
    deallocate(sat_azi)
    deallocate(sol_azi)
+print *,'zzc6'  
    if( use_clddet_zz ) deallocate(tbbp)
    if( use_clddet_zz ) deallocate(ter_sat)
    if( use_clddet_zz ) deallocate(SDob_10)
@@ -561,11 +556,14 @@ end if
    if( use_clddet_zz ) deallocate(rtmt)
    if( use_clddet_zz ) deallocate(tempir)
    if( use_clddet_zz ) deallocate(cwvt1)
+   if( use_clddet_zz ) deallocate(cwvt2)	
    if( use_clddet_zz ) deallocate(tbb_temp1)
    if( use_clddet_zz ) deallocate(tbb_temp2)
    
    end do infile_loop
+print *,'zzc5'
 
+print *,'zzc7'
    if (thinning .and. num_ahi_global > 0 ) then
 #ifdef DM_PARALLEL
    ! Get minimum crit and associated processor index.
@@ -651,6 +649,7 @@ end if
       end do
 
    end if  ! End of thinning
+print *,'zzc5'
    iv%total_rad_pixel   = iv%total_rad_pixel + num_ahi_used
    iv%total_rad_channel = iv%total_rad_channel + num_ahi_used*nchan
 

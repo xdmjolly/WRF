@@ -378,6 +378,7 @@ ntime_loop: do itime = 1, ntime
                read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf        ! OMA or EMS
             end if
             read(unit=iunit(iproc),fmt='(10f11.2)',iostat=ios) tb_err(:,ipixel)
+!print *,'dongmei',tb_err(2,ipixel)
             read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf           ! QC
             read(unit=iunit(iproc),fmt='(10i11)',iostat=ios  ) tb_qc(:,ipixel)
             read(unit=iunit(iproc),fmt='(a)',iostat=ios) buf

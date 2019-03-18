@@ -18,7 +18,7 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
    logical   :: lmix, cloud_detection 
    integer   :: n,k,isflg,ios,fgat_rad_unit
    integer   :: ngood(nchan),nrej(nchan),nrej_omb_abs(nchan), &
-                nrej_omb_std(nchan),nrej_eccloud(nchan), &
+                nrej_omb_std(nchan), &
                 nrej_clw(nchan),num_proc_domain, &
 				nrej_mixsurface,nrej_land
 
@@ -52,7 +52,7 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
    integer            :: isflgs_clddet(num_clddet_cats)
    logical            :: qual_clddet(num_clddet_cats)
    character(len=10)  :: crit_names_clddet(num_clddet_tests)
-   integer            :: nrej_clddet(nchan,num_clddet_tests)
+   integer            :: nrej_clddet(nchan,num_clddet_tests+1)
    integer*2          :: clddet_tests(num_clddet_tests)
 
    real, pointer      :: tb_ob(:,:), tb_xb(:,:), tb_inv(:,:), tb_xb_clr(:,:), ca_mean(:,:)
@@ -68,6 +68,7 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
 
    integer, parameter :: ch7  = 1
    integer, parameter :: ch10 = 4
+   integer, parameter :: ch13 = 7
    integer, parameter :: ch14 = 8
    integer, parameter :: ch15 = 9
    
@@ -101,7 +102,7 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
    eps_clddet = transpose( reshape( (/ &
                     3.2,     4.1, big_num, big_num &
                  ,  0.1,     0.3,     0.4,     0.4 &
-                 ,  0.8,     2.5,     1.0,     1.0 &
+                 ,  0.8,     2.5, big_num, big_num &
                  ,  1.0,     2.0,     5.0,     5.0 &
                  ,  0.7,     1.0, big_num, big_num &
                  ,  0.7,     0.7,     0.7,     0.7 &
@@ -119,10 +120,10 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
    nrej(:)         = 0
    nrej_omb_abs(:) = 0
    nrej_omb_std(:) = 0
-   nrej_eccloud(:) = 0 
    nrej_clw(:)     = 0
    nrej_mixsurface = 0
    nrej_land       = 0
+   nrej_clddet(:,:)= 0  
    num_proc_domain = 0
 
    tb_ob => ob%instid(i)%tb
@@ -142,7 +143,7 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
       isflg = iv%instid(i)%isflg(n)
       lmix  = (isflg==4) .or. (isflg==5) .or. (isflg==6) .or. (isflg==7)
       if (lmix) then
-          tb_qc = qc_bad
+         tb_qc = qc_bad
          if (iv%instid(i)%info%proc_domain(1,n)) &
             nrej_mixsurface = nrej_mixsurface + 1
       end if
@@ -165,45 +166,18 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
              tb_qc(k) = qc_bad
       end do
 
-      !  3.0 check cloud
+      !  3.0 check clw in  fg
       !-----------------------------------------------------------------
       if (.not. crtm_cloud ) then
 
          do k = 1, nchan		 
-        ! if (iv%instid(i)%clwp(n) >= 0.2) then
-        !    tb_qc = qc_bad
-        !    if (iv%instid(i)%info%proc_domain(1,n)) &
-        !       nrej_clw(k) = nrej_clw(k) + 1
-        ! end if
-
-         cloud_detection=.false.	
-         if (cloud_detection) then
-            if (iv%instid(i)%landsea_mask(n) == 0 ) then
-               if (iv%instid(i)%tb_xb(3,n)-ob%instid(i)%tb(3,n)>3.5) then
-                  tb_qc = qc_bad
-                  if (iv%instid(i)%info%proc_domain(1,n)) &
-                     nrej_eccloud(k) = nrej_eccloud(k) + 1
-               end if
-            else
-               if (iv%instid(i)%tb_xb(3,n)-ob%instid(i)%tb(3,n)>2.5) then
-                  tb_qc = qc_bad
-                  if (iv%instid(i)%info%proc_domain(1,n)) &
-                     nrej_eccloud(k) = nrej_eccloud(k) + 1
-               end if
-            end if
-         else
-            if (iv%instid(i)%cloudflag(n) >0) then ! only use confident clear pixels
-                tb_qc = qc_bad
-                if (iv%instid(i)%info%proc_domain(1,n)) &
-                    nrej_eccloud(k) = nrej_eccloud(k) + 1
-            end if
+         if (iv%instid(i)%clwp(n) >= 0.2) then
+            tb_qc = qc_bad
+            if (iv%instid(i)%info%proc_domain(1,n)) &
+               nrej_clw(k) = nrej_clw(k) + 1
          end if
 		end do 
-
       end if
-
-
-
       ahi_clddet: if ( use_clddet_zz &
                      .and. all(tb_inv( (/ch7,ch14,ch15/), n ) .gt. missing_r) &
                      .and. all(tb_ob(  (/ch7,ch14,ch15/), n ) .gt. missing_r) &
@@ -283,11 +257,6 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
             qual_clddet = .true.
             offset_clddet = 0
             crit_clddet = missing_r
-            iv%instid(i)%cld_qc(n)%tb_stddev_3x3 = missing_r
-            iv%instid(i)%cld_qc(n)%RTCT = missing_r
-            iv%instid(i)%cld_qc(n)%RFMFT = missing_r
-            iv%instid(i)%cld_qc(n)%CIRH2O = missing_r
-            iv%instid(i)%cld_qc(n)%TEMPIR = missing_r
             select case (itest)
                case (1)
                   !--------------------------------------------------------------------------
@@ -295,7 +264,6 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
                   !--------------------------------------------------------------------------
                   crit_clddet = iv%instid(i)%cld_qc(n)%RTCT
                   qual_clddet(3:4) = .false.
-
                case (2)
                   !--------------------------------------------------------------------------
                   ! 4.2 Cloud check: step 1  
@@ -303,7 +271,6 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
                   !--------------------------------------------------------------------------
                   if ( tb_xb(ch14,n) .gt. 0. .and. iv%instid(i)%tropt(n) .gt. 0. ) &
                      crit_clddet = (rad_O14 - rad_M14) / (rad_tropt - rad_M14)
-
                case (3)
                   !--------------------------------------------------------------------------
                   ! 4.3 Cloud check: step 2  
@@ -311,29 +278,28 @@ subroutine da_qc_ahi (it, i, nchan, ob, iv)
                   !--------------------------------------------------------------------------
                   ! See ABI Cloud Mask Description for qual_clddet
                   qual_clddet = (tb_xb(ch14,n).ge.tb_xb(ch15,n))
-
                   if ( (tb_inv(ch14,n) + tb_xb(ch14,n)).le.310. .and. &
+                       iv%instid(i)%cld_qc(n)%tb_stddev_14.ge.0.3 .and. &
                        tb_ob(ch14,n).gt.0. .and. tb_ob(ch15,n).gt.0. ) &
                         crit_clddet = ( tb_ob(ch14,n) - tb_ob(ch15,n) )
 ! above using ob without VarBC 
 ! -------------------------------
 !                        crit_clddet = (tb_inv(ch14,n) + tb_xb(ch14,n) - &
-!                                (tb_inv(ch15,n) + tb_xb(ch15,n)) ) 
+!                                (tb_inv(ch15,n) + tb_xb(ch15,n)) )-&
+!                                (tb_xb(ch14,n) - tb_xb(ch15,n)) * &
+!                                (tb_ob(ch14,n) - 260.) / (tb_xb(ch14,n) - 260.) 
 ! above using ob with VarBC
 ! -------------------------------
-
-!JJG: Why does this logical test not use tb_ob(ch14,n)? Something to do with VarBC...
                   if ( crit_clddet.gt.missing_r .and. &
                        (tb_inv(ch14,n) + tb_xb(ch14,n)).gt.270. .and. &
                        tb_xb(ch14,n).gt.270. ) &
                         crit_clddet = crit_clddet       - &
                                 (tb_xb(ch14,n) - tb_xb(ch15,n)) * &
-                                (tb_ob(ch14,n) - 260.) / (tb_xb(ch14,n) - 260.) 
+                                (tb_ob(ch14,n) - 260.) / (tb_xb(ch14,n) - 260.)
 ! above 1 line using ob without VarBC
 !                               (tb_inv(ch14,n) + tb_xb(ch14,n) - 260.)/ & 
 !                               (tb_xb(ch14,n) - 260.) 
 ! above 2 lines using ob with VarBC  
-print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3x3(ch14)
 
                case (4)
                   !--------------------------------------------------------------------------
@@ -341,7 +307,6 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                   !--------------------------------------------------------------------------
                   if (tb_ob(ch14,n) .gt. 0. .and. tb_ob(ch15,n) .gt. 0.) &
                      crit_clddet = tb_inv(ch15,n) - tb_inv(ch14,n)
-
                case (5)
                   !--------------------------------------------------------------------------
                   ! 4.5 Relative Fourteen Minus Fifteen Test (RFMFT)
@@ -352,7 +317,6 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                   qual_clddet(3:4) = .false.
 
                   crit_clddet = iv%instid(i)%cld_qc(n)%RFMFT
-
                case (6)
                   !--------------------------------------------------------------------------
                   ! 4.6 Cirrus Water Vapor Test (CIRH2O)
@@ -360,11 +324,10 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                   ! See ABI Cloud Mask Description for qual_clddet
                   qual_clddet = &
                            iv%instid(i)%cld_qc(n)%terr_hgt .le. 2000.  &
-                     .and. iv%instid(i)%cld_qc(n)%tb_stddev_3x3(ch10) .gt. 0.5 &
-                     .and. iv%instid(i)%cld_qc(n)%tb_stddev_3x3(ch14) .gt. 0.5
-                  if ( allocated(iv%instid(i)%cld_qc(n)%CIRH2O) ) &
-                     crit_clddet = iv%instid(i)%cld_qc(n)%CIRH2O(1,1,1)
-
+                     .and. iv%instid(i)%cld_qc(n)%terr_hgt .ge. 0.  &						   
+                     .and. iv%instid(i)%cld_qc(n)%tb_stddev_10 .gt. 0.5 &
+                     .and. iv%instid(i)%cld_qc(n)%tb_stddev_14 .gt. 0.5
+                     crit_clddet = iv%instid(i)%cld_qc(n)%CIRH2O
                case (7)
                   !--------------------------------------------------------------------------
                   ! 4.7 Modified 4um Emissivity Test (M-4EMISS)
@@ -384,7 +347,6 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                         crit_clddet = (rad_o_ch7/rad_o_ch14 - rad_b_ch7/rad_b_ch14)/ & 
                                   (rad_b_ch7 / rad_b_ch14)
                   end if
-
                case (8)
                   !--------------------------------------------------------------------------
                   ! 4.8 Uniform low stratus Test (ULST)
@@ -393,7 +355,6 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                   qual_clddet = iv%instid(i)%solzen(n) >= 85.0
                   if (tb_ob(ch7,n) .gt. 0. .and. tb_ob(ch14,n) .gt. 0.) &
                      crit_clddet = rad_b_ch7/rad_b_ch14 - rad_o_ch7/rad_o_ch14
-
                case (9)
                   !--------------------------------------------------------------------------
                   ! 4.9 New Optically Thin Cloud Test (N-OTC)
@@ -411,13 +372,11 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
 ! -------------------------------
 !                       crit_clddet = tb_inv(ch7,n) + tb_xb(ch7,n) - & 
 !                             (tb_inv(ch15,n) + tb_xb(ch15,n))
-
                case (10)
                   !--------------------------------------------------------------------------
                   ! 4.10 Temporal Infrared Test (TEMPIR)
                   !--------------------------------------------------------------------------
                   crit_clddet = iv%instid(i)%cld_qc(n)%TEMPIR
-
                case default
                   cycle
             end select
@@ -436,7 +395,7 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                tb_qc_clddet = qc_bad
                if (iv%instid(i)%info%proc_domain(1,n)) then
                   nrej_clddet(:,itest) = nrej_clddet(:,itest) + 1
-                  write(stdout,"(A,F14.6,A,I4,2D12.4)") trim(crit_names_clddet(itest)), crit_clddet, " isflg", isflg, iv%instid(i)%info%lat(1,n), iv%instid(i)%info%lon(1,n)
+        !          write(stdout,"(A,F14.6,A,I4,2D12.4)") trim(crit_names_clddet(itest)), crit_clddet, " isflg", isflg, iv%instid(i)%info%lat(1,n), iv%instid(i)%info%lon(1,n)
                end if
 
                clddet_tests(itest) = 1
@@ -448,8 +407,6 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
          if (print_cld_debug) write(stdout,'(A,I8,*(2x,I1:))') 'PIXEL_DEBUG6: ', n, clddet_tests
 !JJGDEBUG
       end if ahi_clddet
-
-	  
 	  
       ! ---------------------------
       ! 5.0 assigning obs errors
@@ -466,7 +423,8 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
       else !crtm_cloud
 	     tb_xb_clr => iv%instid(i)%tb_xb_clr
          ! calculate ca_mean
-         ca_mean => iv%instid(i)%ca_mean
+         if (crtm_cloud) ca_mean => iv%instid(i)%ca_mean
+		 
         ! ca_mean = missing_r
          do k = 1, nchan
             if ( .true. &
@@ -499,7 +457,7 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
          end do ! nchan
       end if
 
-      !  5.0 check innovation
+      !  5.0 gross 8k check -clr,sdobs-clr
       !-----------------------------------------------------------------
       if (.not. crtm_cloud ) then
          ! absolute departure check
@@ -512,31 +470,20 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
                         nrej_omb_abs(k) = nrej_omb_abs(k) + 1
             end if			
          end do ! nchan
+	     if (use_clddet_zz) then	
+          ! SDob cloud inhomogeneous check
+             if (iv%instid(i)%cld_qc(n)%tb_stddev_13 >= 2) then ! only use abs clear pixel
+                 iv%instid(i)%tb_qc(:,n) = qc_bad			 
+                 if (iv%instid(i)%info%proc_domain(1,n)) &			
+				 nrej_clddet(:,11)= nrej_clddet(:,11)+1
+             end if
+         end if		  
       end if
       iv%instid(i)%tb_qc(:,n) = tb_qc
-      do k = 1, nchan
-         ! relative departure check
-           if (abs(iv%instid(i)%tb_inv(k,n)) > 3.0*iv%instid(i)%tb_error(k,n)) then
-               iv%instid(i)%tb_qc(k,n)  = qc_bad
-               if (iv%instid(i)%info%proc_domain(1,n)) &
-                   nrej_omb_std(k) = nrej_omb_std(k) + 1
-           end if
 
-         ! final QC decsion
-         if (iv%instid(i)%tb_qc(k,n) == qc_bad) then
-            iv%instid(i)%tb_error(k,n) = 500.0
-            if (iv%instid(i)%info%proc_domain(1,n)) &
-                  nrej(k) = nrej(k) + 1
-         else
-            if (iv%instid(i)%info%proc_domain(1,n)) &
-                  ngood(k) = ngood(k) + 1
-         end if
-      end do      ! nchan
-      !  6.0 additional allsky QC, Okamoto, 2017, QJ
+      !  6.0 additional allsky QC, gross 15k, lowbt, ca mean Okamoto, 2017, QJ
       !-----------------------------------------------------------------
       if ( crtm_cloud ) then
-
-
           ! absolute departure check
          do k = 1, nchan
             inv_grosscheck = 15.0
@@ -565,16 +512,37 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
          end do ! nchan
 
       end if
+	  
+      ! 3std check and final QC decsion	  
+      do k = 1, nchan
+         ! relative departure check
+           if (abs(iv%instid(i)%tb_inv(k,n)) > 3.0*iv%instid(i)%tb_error(k,n)) then
+               iv%instid(i)%tb_qc(k,n)  = qc_bad
+               if (iv%instid(i)%info%proc_domain(1,n)) &
+                   nrej_omb_std(k) = nrej_omb_std(k) + 1
+           end if	  
+           if (iv%instid(i)%tb_qc(k,n) == qc_bad) then
+              iv%instid(i)%tb_error(k,n) = 500.0
+              if (iv%instid(i)%info%proc_domain(1,n)) &
+                  nrej(k) = nrej(k) + 1
+           else
+              if (iv%instid(i)%info%proc_domain(1,n)) &
+                 ngood(k) = ngood(k) + 1
+           end if
+      end do      ! nchan	  
+	  
    end do ! end loop pixel
  
    ! Do inter-processor communication to gather statistics.
    call da_proc_sum_int  (num_proc_domain)
    call da_proc_sum_int  (nrej_mixsurface)
    call da_proc_sum_int  (nrej_land)
-   call da_proc_sum_ints (nrej_eccloud)
    call da_proc_sum_ints (nrej_omb_abs)
    call da_proc_sum_ints (nrej_omb_std)
    call da_proc_sum_ints (nrej_clw)
+   do itest = 1, num_clddet_tests+1
+     call da_proc_sum_ints (nrej_clddet(:,itest))  
+   end do   
    call da_proc_sum_ints (nrej)
    call da_proc_sum_ints (ngood)
 
@@ -595,11 +563,13 @@ print *,'crit_clddet',crit_clddet,qual_clddet,iv%instid(i)%cld_qc(n)%tb_stddev_3
       write(fgat_rad_unit, fmt='(/a/)') ' Quality Control Statistics for '//iv%instid(i)%rttovid_string
       if(num_proc_domain > 0) write(fgat_rad_unit,'(a20,i7)') ' num_proc_domain  = ', num_proc_domain
       write(fgat_rad_unit,'(a20,i7)') ' nrej_mixsurface  = ', nrej_mixsurface
-	  write(fgat_rad_unit,'(a20,i7)') ' nrej_land  = ', nrej_land
-      write(fgat_rad_unit,'(a20)')    ' nrej_eccloud(:)  = '
-	  write(fgat_rad_unit,'(10i7)')     nrej_eccloud(:)	  
+	  write(fgat_rad_unit,'(a20,i7)') ' nrej_land  = ', nrej_land	  
       write(fgat_rad_unit,'(a20)')    ' nrej_clw(:)  = '
-	  write(fgat_rad_unit,'(10i7)')     nrej_clw(:)	  	  
+	  write(fgat_rad_unit,'(10i7)')     nrej_clw(:)	  
+      do itest = 1, num_clddet_tests+1
+      write(fgat_rad_unit,'(a20,i2,a2)')    ' nrej_clddet zz test',itest,"="
+	  write(fgat_rad_unit,'(10i7)')     nrej_clddet(:,itest)	  	  
+      end do		 
       write(fgat_rad_unit,'(a20)')    ' nrej_omb_abs(:)  = '
       write(fgat_rad_unit,'(10i7)')     nrej_omb_abs(:)
       write(fgat_rad_unit,'(a20)')    ' nrej_omb_std(:)  = '

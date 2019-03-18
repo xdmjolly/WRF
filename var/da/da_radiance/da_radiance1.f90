@@ -46,7 +46,8 @@ module da_radiance1
 
       type (info_type)        :: info
       type (model_loc_type)   :: loc
-      type (cld_qc_type), pointer :: cld_qc => null()
+      !type (cld_qc_type), pointer :: cld_qc => null()
+      type (cld_qc_type)    :: cld_qc
       integer   ::  ifgat, landsea_mask, rain_flag
       integer   ::  scanline, scanpos
       real      ::  satzen, satazi, solzen, solazi  !  satellite and solar angles
