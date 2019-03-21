@@ -65,7 +65,26 @@ SUBROUTINE output_ssmi_31 (max_number_of_obs, obs, number_of_obs, index, &
                                    fmt_each
   REAL                          :: rew_cross, rns_cross
 !------------------------------------------------------------------------------
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  LOGICAL                       :: if_pert
+  INTEGER :: ilistunit
+  real :: error_t, error_uv, error_u, error_v
+  real :: test, rtemp 
+  integer :: iseed
+  namelist /seedpara/ if_pert,iseed,error_t,error_uv,error_u,error_v 
+  if_pert=.false.
+  iseed=312
+  error_t=3.0
+  error_uv=3.0
+  error_u=3.0
+  error_v=3.0
+  
+  open(ilistunit,file='namelist.seed',form='formatted',status='old')
+  read(ilistunit,seedpara)
+  close(ilistunit)
+  call set_random_seed(iseed)
 
+!!!!!!! 
   rew_cross=real(nestjx(idd)-1)
   rns_cross=real(nestix(idd)-1)
 
@@ -358,7 +377,10 @@ stations_valid: &
             obs (loop_index) % location % yic > rns_cross) ) then
             obs (loop_index) % ground  % pw   % qc = -88
          end if
-
+		 if (if_pert) then
+		 if (obs (loop_index) % surface % meas % speed % data /= missing_r) &
+         obs (loop_index) % surface % meas % speed % data=obs (loop_index) % surface % meas % speed % data + error_uv*rnorm()  ! speed	
+         end if
          WRITE (UNIT = 125, FMT = TRIM (fmt_srfc))                  &
                 obs (loop_index) % surface % meas % speed % data,  &
                 obs (loop_index) % surface % meas % speed % qc,    &
@@ -505,7 +527,7 @@ SUBROUTINE output_gts_31 (max_number_of_obs, obs, number_of_obs, windex,&
   TYPE (measurement ) , POINTER :: current
   INTEGER                       :: loop_index
   INTEGER                       :: i, ii, n, ntotal, k_levels
-  INTEGER                       :: nmultis, nsingles, nlevels, nwrites
+  INTEGER                       :: nvalids, nmultis, nsingles, nlevels, nwrites
   INTEGER                       :: is_sound, fm
   LOGICAL                       :: connected
   CHARACTER (LEN = 80)          :: filename
@@ -520,7 +542,28 @@ SUBROUTINE output_gts_31 (max_number_of_obs, obs, number_of_obs, windex,&
 !------------------------------------------------------------------------------
   REAL                          :: rew_cross, rns_cross
   LOGICAL                       :: change_qc
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  LOGICAL                       :: if_pert
+  INTEGER :: ilistunit
+  real :: error_t, error_uv, error_u, error_v
+  real :: test, rtemp 
+  integer :: iseed
+  namelist /seedpara/ if_pert,iseed,error_t,error_uv,error_u,error_v 
+  
+  if_pert=.false.
+  iseed=312
+  error_t=3.0
+  error_uv=3.0
+  error_u=3.0
+  error_v=3.0
+  
+  open(ilistunit,file='namelist.seed',form='formatted',status='old')
+  read(ilistunit,seedpara)
+  close(ilistunit)
+  call set_random_seed(iseed)
+
+!!!!!!!  
   rew_cross=real(nestjx(idd)-1)
   rns_cross=real(nestix(idd)-1)
 !------------------------------------------------------------------------------!
@@ -929,7 +972,17 @@ levels:&
       if (current % meas % height   % qc < 0) &
           current % meas % height   % data = missing_r
 ! ...............................................................
-
+! ...............................................................
+      if (if_pert) then
+		 if (current % meas % temperature % data /= missing_r) &
+         current % meas % temperature % data=current % meas % temperature % data + error_t*rnorm()  ! temperature	
+		 if (current % meas % u           % data /= missing_r) &
+         current % meas % u           % data=current % meas % u % data + error_u*rnorm()  ! u
+		 if (current % meas % v           % data /= missing_r) &
+         current % meas % v           % data=current % meas % v % data + error_v*rnorm()  ! v
+		 if (current % meas % speed       % data /= missing_r) &
+         current % meas % speed       % data=current % meas % speed   % data + error_uv*rnorm()    ! dir
+	  end if
           if (fm == 118 .or. fm == 116) then
 
       WRITE (UNIT = 99, FMT = TRIM (fmt_each))    &
@@ -1081,7 +1134,7 @@ SUBROUTINE output_prep (max_number_of_obs, obs, number_of_obs, windex,&
   TYPE (measurement ) , POINTER :: current
   INTEGER                       :: bfout, bftable, loop_index
   INTEGER                       :: i, n, nlv, nmax, ntotal
-  INTEGER                       :: nmultis, nsingles, nlevels, nwrites
+  INTEGER                       :: nvalids, nmultis, nsingles, nlevels, nwrites
   INTEGER                       :: is_sound, fm, idate
   INTEGER                       :: year, month, day, hour, minute, second
   INTEGER                       :: mxmn, kx
@@ -2000,5 +2053,141 @@ else
 endif
 
 END FUNCTION qz
+FUNCTION rnorm() RESULT( fn_val )
 
+!   Generate a random normal deviate using the polar method.
+!   Reference: Marsaglia,G. & Bray,T.A. 'A convenient method for generating
+!              normal variables', Siam Rev., vol.6, 260-264, 1964.
+
+IMPLICIT NONE
+REAL  :: fn_val
+
+! Local variables
+
+REAL            :: u, sum
+REAL, SAVE      :: v, sln
+LOGICAL, SAVE   :: second = .FALSE.
+REAL, PARAMETER :: one = 1.0, vsmall = TINY( one )
+
+IF (second) THEN
+! If second, use the second random number generated on last call
+
+  second = .false.
+  fn_val = v*sln
+
+ELSE
+! First call; generate a pair of random normals
+
+  second = .true.
+  DO
+    CALL RANDOM_NUMBER( u )
+    CALL RANDOM_NUMBER( v )
+    u = SCALE( u, 1 ) - one
+    v = SCALE( v, 1 ) - one
+    sum = u*u + v*v + vsmall         ! vsmall added to prevent LOG(zero) / zero
+    IF(sum < one) EXIT
+  END DO
+  sln = SQRT(- SCALE( LOG(sum), 1 ) / sum)
+  fn_val = u*sln
+END IF
+
+RETURN
+END FUNCTION rnorm
+
+subroutine set_random_seed ( iseed )
+!
+!*******************************************************************************
+!
+!! SET_RANDOM_SEED initializes the FORTRAN 90 random number generator.
+!
+!
+!  Discussion:
+!
+!    If ISEED is nonzero, then that value is used to construct a seed.
+!
+!    If ISEED is zero, then the seed is determined by calling the date 
+!    and time routine.  Thus, if the code is run at different times, 
+!    different seed values will be set.
+!
+!  Parameters:
+!
+!    Input, integer ISEED, is nonzero for a user seed, or 0 if the
+!    seed should be determined by this routine.
+!
+  implicit none
+!
+  integer date_time(8)
+  logical, parameter :: debug = .false.
+  integer i
+  integer iseed
+  integer j
+  integer k
+  integer, parameter :: myrank = 0
+  integer, allocatable :: seed(:)
+  real x
+!
+!  Initialize the random seed routine.
+!
+  call random_seed
+!
+!  Request the size of a typical seed.
+!  (On the DEC ALPHA, K is returned as 2.)
+!
+  call random_seed ( size = k )
+
+  if ( debug ) then
+    write ( *, '(a)' ) ' '
+    write ( *, '(a)' ) 'SET_RANDOM_SEED:'
+    write ( *, '(a,i6)' ) '  Random seed size is K = ', k
+  end if
+!
+!  Set up space for a seed vector.
+!
+  allocate ( seed(k) )
+
+  if ( iseed /= 0 ) then
+
+    seed(1:k) = iseed
+
+  else
+!
+!  Make up a "random" value based on date and time information.
+!
+    call date_and_time ( values = date_time )
+
+    do i = 1, k
+
+      seed(i) = 0
+
+      do j = 1, 8
+        seed(i) = seed(i) + ( j + i ) * date_time(j) + myrank * 100
+        seed(i) = ishftc ( seed(i), 4 * ( j - 1 ) )
+      end do
+
+    end do
+
+  end if
+
+  if  ( debug ) then
+
+    write ( *, '(a)' ) ' '
+    write ( *, '(a)' ) 'SET_RANDOM_SEED:'
+    write ( *, '(a)' ) '  The random seed vector:'
+    write ( *, '(a)' ) ' '
+
+    do i = 1, k
+      write ( *, '(i12)' ) seed(i)
+    end do
+
+  end if
+!
+!  Send this random value back to the RANDOM_SEED routine, to be
+!  used as the seed of the random number generator.
+!
+  call random_seed ( put = seed(1:k) )
+
+  deallocate ( seed )
+
+  return
+END SUBROUTINE set_random_seed
 END MODULE module_write
