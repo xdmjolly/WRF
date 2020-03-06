@@ -341,14 +341,14 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
   !       con_vars(n) % ciw(1:nlevels) = iv%instid(inst)%qci(1:nlevels,n)
   !       con_vars(n) % rain(1:nlevels)= iv%instid(inst)%qrn(1:nlevels,n)
   !       con_vars(n) % sp(1:nlevels)  = iv%instid(inst)%qsn(1:nlevels,n)
-       If(rttov_cloud) then   !fix by dongmei
+
           con_vars(n) % clw(1:nlevels) = QC0(1:nlevels,n)
           con_vars(n) % ciw(1:nlevels) = QI0(1:nlevels,n)
           con_vars(n) % rain(1:nlevels)= QR0(1:nlevels,n)
           con_vars(n) % sp(1:nlevels)  = QS0(1:nlevels,n)  
    
           con_vars(n) % cc(1:nlevels)  = 0.5    
-        end if
+
 
          aux_vars(n) % t2m      = iv%instid(inst)%t2m(n)
          aux_vars(n) % q2m      = iv%instid(inst)%mr2m(n)
@@ -380,7 +380,6 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
                temp, temp2, temp3, emissivity((n-n1)*nchan+1:(n-n1+1)*nchan))
             iv%instid(inst)%emiss(:,n) = emissivity((n-n1)*nchan+1:(n-n1+1)*nchan)%emis_out 
          end if
-		          print*,'check1'
          iv%instid(inst)%tb_xb(:,n)=temp(:)
          iv%instid(inst)%rad_xb(:,n)=temp2(:)
          ! Overcast Radiances for AIRS Cloud Detection(MMR)
@@ -389,7 +388,7 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
 
       end do
       !$OMP END PARALLEL DO
-    print*,'check2'
+
       if ( use_rttov_kmatrix ) then
          do n = n1, n2
             do k = 1, nlevels
@@ -416,15 +415,13 @@ real,allocatable :: temp(:), temp2(:), temp3(:,:)
          deallocate (con_vars(n) % cc)
      !   deallocate (con_vars(n) % ph)   
 
-
+     !    deallocate (QC0)
+     !    deallocate (QI0)
+     !    deallocate (QR0)
+     !    deallocate (QS0)
 
       end do
-      If(rttov_cloud) then
-         deallocate (QC0)
-         deallocate (QI0)
-         deallocate (QR0)
-         deallocate (QS0)	  
-	  end if 
+
       !----------------------------------------------------------------
       ! [2.0] calculate components of innovation vector:
       !----------------------------------------------------------------
